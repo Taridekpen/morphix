@@ -1,51 +1,81 @@
-# Morphix — Face & Voice Studio
+# Morphix — Face Swap Studio
 
-Real-time face swap (Decart Lucy) + voice changer (Fish Audio) fused into one app.
+Real-time face swap powered by Decart Lucy, with secure backend, SaaS billing, and a simple studio dashboard.
+
+## Architecture
+
+```
+apps/web     — React 19 + TypeScript + Tailwind (Vite)
+apps/api     — Fastify + Mongoose + MongoDB
+packages/shared — Shared types and Zod schemas
+packages/media  — MediaManager + LiveSessionController
+```
+
+## Prerequisites
+
+- Node.js 20+
+- pnpm (`npm install -g pnpm`)
+- MongoDB (local install or [MongoDB Atlas](https://www.mongodb.com/atlas))
 
 ## Setup
 
 ### 1. Install dependencies
+
 ```bash
-npm install
+pnpm install
 ```
 
-### 2. Configure environment
-Copy `.env.example` to `.env` and fill in your keys:
+### 2. Configure API environment
+
 ```bash
-cp .env.example .env
+cp apps/api/.env.example apps/api/.env
 ```
 
-Edit `.env`:
-```
-VITE_DECART_API_KEY=your_decart_api_key_here
-VITE_FISH_API_KEY=your_fish_audio_api_key_here
-VITE_FISH_VOICE_ID=your_fish_voice_id_here
-```
+Edit `apps/api/.env`:
 
-> You can also leave Fish keys blank and enter them directly in the app UI.
+- `MONGODB_URI` — e.g. `mongodb://127.0.0.1:27017/morphix` or your Atlas connection string
+- `DECART_API_KEY`, `JWT_SECRET`
 
-### 3. Run
+### 3. Seed the database
+
+Ensure MongoDB is running, then:
+
 ```bash
-npm run dev
-```
-Open [http://localhost:5173](http://localhost:5173)
-
----
-
-## For Voice Changer → Zoom/Discord routing
-
-**Windows:** Install [VB-Cable](https://vb-audio.com/Cable/) (free)  
-**Mac:** Install [BlackHole](https://existential.audio/blackhole/) (free)
-
-Then in Zoom/Discord: Settings → Audio → Microphone → select the virtual cable.
-
----
-
-## How it works
-
-```
-Camera → Decart Lucy (cloud) → swapped face video in browser
-Mic    → Fish Audio (cloud)  → converted voice → virtual cable → Zoom/Discord
+pnpm db:seed
 ```
 
-Both run simultaneously and independently.
+Creates admin user: `admin@morphix.local` / `admin123456` (with active Pro subscription).
+
+### 4. Run development servers
+
+```bash
+pnpm dev
+```
+
+- Web: http://localhost:5173
+- API: http://localhost:3001
+
+## Features
+
+- **Real-time face swap** — Decart Lucy with reference photo upload
+- **Secure API keys** — Decart tokens issued server-side
+- **Face gallery** — save and switch multiple reference faces
+- **Before/after preview** — split view, PiP, or after-only
+- **Recording** — export swapped video as WebM
+- **Crypto billing** — submit tx hash, admin approves in dashboard
+- **Dark mode** — light/dark/system theme
+
+## Streaming with OBS Virtual Camera
+
+Use the **Morphix Desktop** app to send the swapped face to OBS Virtual Camera (for Zoom, Discord, Teams, etc.):
+
+1. Install [OBS Studio 28+](https://obsproject.com/) and enable **WebSocket Server** (Tools → WebSocket Server Settings)
+2. Run `pnpm dev:desktop` (starts web, API, and Electron)
+3. In Studio: select face → open camera → start swap → **Start OBS Virtual Camera**
+4. In your call app, choose **OBS Virtual Camera** as the camera
+
+See [`apps/desktop/README.md`](apps/desktop/README.md) for details.
+
+## Desktop app
+
+Electron wrapper in `apps/desktop/` — OBS Virtual Camera automation and dedicated swap output window.

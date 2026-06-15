@@ -1,5 +1,9 @@
 # Dependencies
 node_modules/
+
+# Uploads
+apps/api/uploads/
+uploads/
 .pnp
 .pnp.js
 
