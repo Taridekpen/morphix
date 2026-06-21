@@ -1,21 +1,36 @@
 import type { RelaySignalMessage } from "@/types/desktop";
+import { createBrowserRelayTransport, type RelayTransport } from "@/lib/browserRelay";
+import { isDesktopApp, isLocalhost } from "@/lib/runtimeEnv";
 
 const ICE_SERVERS: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
 
-export function sendRelaySignal(message: RelaySignalMessage): void {
-  window.morphixDesktop?.sendRelaySignal(message);
-}
+export { isDesktopApp, isLocalhost, isBrowserObsSupported } from "@/lib/runtimeEnv";
 
-export function isDesktopApp(): boolean {
-  return !!window.morphixDesktop?.isDesktop;
+export function createRelayTransport(token?: string): RelayTransport | null {
+  if (isDesktopApp()) {
+    return {
+      send: (message: RelaySignalMessage) => window.morphixDesktop!.sendRelaySignal(message),
+      onMessage: (callback) => window.morphixDesktop!.onRelaySignal(callback),
+      dispose: () => undefined,
+    };
+  }
+
+  if (token && isLocalhost()) {
+    return createBrowserRelayTransport(token);
+  }
+
+  return null;
 }
 
 export class StreamRelaySender {
   private pc: RTCPeerConnection | null = null;
   private unsub: (() => void) | null = null;
+  private transport: RelayTransport | null = null;
+  private offerSent = false;
 
-  start(stream: MediaStream): void {
+  start(stream: MediaStream, transport: RelayTransport): void {
     this.stop();
+    this.offerSent = false;
 
     const track = stream.getVideoTracks()[0];
     if (!track) {
@@ -24,21 +39,24 @@ export class StreamRelaySender {
 
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     this.pc = pc;
+    this.transport = transport;
     pc.addTrack(track, stream);
 
     pc.onicecandidate = (event) => {
-      sendRelaySignal({ type: "ice", candidate: event.candidate?.toJSON() ?? null });
+      transport.send({ type: "ice", candidate: event.candidate?.toJSON() ?? null });
     };
 
-    this.unsub = window.morphixDesktop!.onRelaySignal((message) => {
+    this.unsub = transport.onMessage((message) => {
       void this.handleSignal(message);
     });
   }
 
   private async handleSignal(message: RelaySignalMessage): Promise<void> {
-    if (!this.pc) return;
+    if (!this.pc || !this.transport) return;
 
     if (message.type === "ready") {
+      if (this.offerSent) return;
+      this.offerSent = true;
       await this.sendOffer();
       return;
     }
@@ -54,10 +72,10 @@ export class StreamRelaySender {
   }
 
   private async sendOffer(): Promise<void> {
-    if (!this.pc) return;
+    if (!this.pc || !this.transport) return;
     const offer = await this.pc.createOffer();
     await this.pc.setLocalDescription(offer);
-    sendRelaySignal({ type: "offer", sdp: offer });
+    this.transport.send({ type: "offer", sdp: offer });
   }
 
   stop(): void {
@@ -65,18 +83,23 @@ export class StreamRelaySender {
     this.unsub = null;
     this.pc?.close();
     this.pc = null;
+    this.transport?.dispose();
+    this.transport = null;
   }
 }
 
 export class StreamRelayReceiver {
   private pc: RTCPeerConnection | null = null;
   private unsub: (() => void) | null = null;
+  private transport: RelayTransport | null = null;
+  private readyTimer: number | null = null;
 
-  start(onStream: (stream: MediaStream) => void): void {
+  start(onStream: (stream: MediaStream) => void, transport: RelayTransport): void {
     this.stop();
 
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     this.pc = pc;
+    this.transport = transport;
 
     pc.ontrack = (event) => {
       if (event.streams[0]) {
@@ -85,24 +108,30 @@ export class StreamRelayReceiver {
     };
 
     pc.onicecandidate = (event) => {
-      sendRelaySignal({ type: "ice", candidate: event.candidate?.toJSON() ?? null });
+      transport.send({ type: "ice", candidate: event.candidate?.toJSON() ?? null });
     };
 
-    this.unsub = window.morphixDesktop!.onRelaySignal((message) => {
+    this.unsub = transport.onMessage((message) => {
       void this.handleSignal(message);
     });
 
-    sendRelaySignal({ type: "ready" });
+    const pingReady = () => transport.send({ type: "ready" });
+    pingReady();
+    this.readyTimer = window.setInterval(pingReady, 500);
   }
 
   private async handleSignal(message: RelaySignalMessage): Promise<void> {
-    if (!this.pc) return;
+    if (!this.pc || !this.transport) return;
 
     if (message.type === "offer") {
+      if (this.readyTimer !== null) {
+        window.clearInterval(this.readyTimer);
+        this.readyTimer = null;
+      }
       await this.pc.setRemoteDescription(message.sdp);
       const answer = await this.pc.createAnswer();
       await this.pc.setLocalDescription(answer);
-      sendRelaySignal({ type: "answer", sdp: answer });
+      this.transport.send({ type: "answer", sdp: answer });
       return;
     }
 
@@ -112,9 +141,15 @@ export class StreamRelayReceiver {
   }
 
   stop(): void {
+    if (this.readyTimer !== null) {
+      window.clearInterval(this.readyTimer);
+      this.readyTimer = null;
+    }
     this.unsub?.();
     this.unsub = null;
     this.pc?.close();
     this.pc = null;
+    this.transport?.dispose();
+    this.transport = null;
   }
 }

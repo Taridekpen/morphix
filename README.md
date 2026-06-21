@@ -67,12 +67,14 @@ pnpm dev
 
 ## Streaming with OBS Virtual Camera
 
-Use the **Morphix Desktop** app to send the swapped face to OBS Virtual Camera (for Zoom, Discord, Teams, etc.):
+Use Morphix with **OBS Studio** on the same PC to expose the swapped face as **OBS Virtual Camera** (for Zoom, Discord, Teams, etc.):
 
 1. Install [OBS Studio 28+](https://obsproject.com/) and enable **WebSocket Server** (Tools → WebSocket Server Settings)
-2. Run `pnpm dev:desktop` (starts web, API, and Electron)
-3. In Studio: select face → open camera → start swap → **Start OBS Virtual Camera**
+2. Run `pnpm dev` and open http://127.0.0.1:5173/studio **or** run `pnpm dev:desktop` for the Electron app
+3. In Studio: select face → open camera → start swap → **Start OBS Virtual Camera** (allow popups in the browser)
 4. In your call app, choose **OBS Virtual Camera** as the camera
+
+Browser OBS control works on **localhost only** (`127.0.0.1:5173`). The desktop app uses window capture; the browser uses an OBS browser source.
 
 See [`apps/desktop/README.md`](apps/desktop/README.md) for details.
 

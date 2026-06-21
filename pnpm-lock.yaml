@@ -99,6 +99,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.69.0
         version: 5.101.0(react@19.2.7)
+      obs-websocket-js:
+        specifier: ^5.0.6
+        version: 5.0.8
       react:
         specifier: ^19.2.6
         version: 19.2.7

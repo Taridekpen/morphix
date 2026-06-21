@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { StreamRelayReceiver, isDesktopApp } from "@/lib/streamRelay";
+import { createBrowserRelayTransport, validateRelayToken } from "@/lib/browserRelay";
+import { StreamRelayReceiver, createRelayTransport, isDesktopApp, isLocalhost } from "@/lib/streamRelay";
 
 export function ObsOutputPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -10,11 +11,28 @@ export function ObsOutputPage() {
   const [hasStream, setHasStream] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const token = searchParams.get("token");
+
   useEffect(() => {
-    const token = searchParams.get("token");
-    if (!isDesktopApp()) {
+    if (isDesktopApp()) {
+      if (!token) {
+        setAuthorized(false);
+        setError("Missing relay token.");
+        return;
+      }
+
+      void window.morphixDesktop!.validateRelayToken(token).then((valid) => {
+        setAuthorized(valid);
+        if (!valid) {
+          setError("Invalid or expired relay token.");
+        }
+      });
+      return;
+    }
+
+    if (!isLocalhost()) {
       setAuthorized(false);
-      setError("This page must be opened from Morphix Desktop.");
+      setError("OBS output is only available on localhost.");
       return;
     }
 
@@ -24,16 +42,18 @@ export function ObsOutputPage() {
       return;
     }
 
-    void window.morphixDesktop!.validateRelayToken(token).then((valid) => {
-      setAuthorized(valid);
-      if (!valid) {
-        setError("Invalid or expired relay token.");
-      }
-    });
-  }, [searchParams]);
+    const valid = validateRelayToken(token);
+    setAuthorized(valid);
+    if (!valid) {
+      setError("Invalid or expired relay token. Start OBS Virtual Camera from Studio again.");
+    }
+  }, [token]);
 
   useEffect(() => {
-    if (!authorized || !isDesktopApp()) return;
+    if (!authorized || !token) return;
+
+    const transport = isDesktopApp() ? createRelayTransport() : createBrowserRelayTransport(token);
+    if (!transport) return;
 
     const receiver = new StreamRelayReceiver();
     receiverRef.current = receiver;
@@ -43,7 +63,7 @@ export function ObsOutputPage() {
         videoRef.current.srcObject = stream;
         setHasStream(true);
       }
-    });
+    }, transport);
 
     return () => {
       receiver.stop();
@@ -52,7 +72,7 @@ export function ObsOutputPage() {
         videoRef.current.srcObject = null;
       }
     };
-  }, [authorized]);
+  }, [authorized, token]);
 
   if (authorized === null) {
     return <OutputShell message="Connecting…" />;

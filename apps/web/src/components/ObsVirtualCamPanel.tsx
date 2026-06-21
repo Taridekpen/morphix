@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ObsStatus } from "@/types/desktop";
-import { isDesktopApp } from "@/lib/streamRelay";
+import {
+  clearRelayToken,
+  closeBrowserOutputWindow,
+  createRelayToken,
+  getObsOutputUrl,
+  openBrowserOutputWindow,
+} from "@/lib/browserRelay";
+import { browserObsClient } from "@/lib/obsClient";
+import { isBrowserObsSupported, isDesktopApp } from "@/lib/runtimeEnv";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -10,14 +18,18 @@ interface ObsVirtualCamPanelProps {
   swapLive: boolean;
   remoteStream: MediaStream | null;
   relayEnabled: boolean;
+  relayToken: string | null;
   onRelayEnabledChange: (enabled: boolean) => void;
+  onRelayTokenChange: (token: string | null) => void;
 }
 
 export function ObsVirtualCamPanel({
   swapLive,
   remoteStream,
   relayEnabled,
+  relayToken,
   onRelayEnabledChange,
+  onRelayTokenChange,
 }: ObsVirtualCamPanelProps) {
   const [status, setStatus] = useState<ObsStatus | null>(null);
   const [password, setPassword] = useState("");
@@ -25,52 +37,112 @@ export function ObsVirtualCamPanel({
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState(false);
 
+  const desktopMode = isDesktopApp();
+  const browserMode = isBrowserObsSupported();
+
   const refreshStatus = useCallback(async () => {
-    if (!window.morphixDesktop) return;
-    const next = await window.morphixDesktop.obs.getStatus();
-    setStatus(next);
-    setActive(next.virtualCamActive);
-  }, []);
+    if (desktopMode && window.morphixDesktop) {
+      const next = await window.morphixDesktop.obs.getStatus();
+      setStatus(next);
+      setActive(next.virtualCamActive);
+      return;
+    }
+
+    if (browserMode) {
+      const next = await browserObsClient.getStatus();
+      setStatus(next);
+      setActive(next.virtualCamActive);
+    }
+  }, [browserMode, desktopMode]);
 
   useEffect(() => {
-    if (!isDesktopApp()) return;
+    if (!desktopMode && !browserMode) return;
     void refreshStatus();
-  }, [refreshStatus]);
+  }, [browserMode, desktopMode, refreshStatus]);
+
+  const handleStartDesktop = async () => {
+    if (!window.morphixDesktop || !remoteStream) return;
+
+    if (password.trim()) {
+      await window.morphixDesktop.obs.setPassword(password.trim());
+    }
+
+    await window.morphixDesktop.openOutputWindow();
+    onRelayEnabledChange(true);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    await window.morphixDesktop.obs.startVirtualCam();
+    await refreshStatus();
+    setActive(true);
+  };
 
   const handleStart = async () => {
-    if (!window.morphixDesktop || !remoteStream) return;
+    if (!remoteStream) return;
     setBusy(true);
     setError(null);
+    let startedToken: string | null = null;
+
     try {
-      if (password.trim()) {
-        await window.morphixDesktop.obs.setPassword(password.trim());
+      if (desktopMode) {
+        await handleStartDesktop();
+      } else if (browserMode) {
+        startedToken = createRelayToken();
+        onRelayTokenChange(startedToken);
+        openBrowserOutputWindow(startedToken);
+        onRelayEnabledChange(true);
+        await new Promise((resolve) => setTimeout(resolve, 800));
+
+        if (password.trim()) {
+          browserObsClient.setPassword(password.trim());
+        }
+
+        await browserObsClient.startVirtualCam(getObsOutputUrl(startedToken));
+        await refreshStatus();
+        setActive(true);
       }
-
-      await window.morphixDesktop.openOutputWindow();
-      onRelayEnabledChange(true);
-
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      await window.morphixDesktop.obs.startVirtualCam();
-      await refreshStatus();
-      setActive(true);
     } catch (err) {
       onRelayEnabledChange(false);
+      onRelayTokenChange(null);
+      closeBrowserOutputWindow();
+      if (startedToken) {
+        clearRelayToken(startedToken);
+      }
       setError(err instanceof Error ? err.message : "Failed to start OBS Virtual Camera");
     } finally {
       setBusy(false);
     }
   };
 
-  const handleStop = async () => {
+  const handleStopDesktop = async () => {
     if (!window.morphixDesktop) return;
+    await window.morphixDesktop.obs.stopVirtualCam();
+    onRelayEnabledChange(false);
+    await window.morphixDesktop.closeOutputWindow();
+    await refreshStatus();
+    setActive(false);
+  };
+
+  const handleStopBrowser = async () => {
+    await browserObsClient.stopVirtualCam();
+    onRelayEnabledChange(false);
+    closeBrowserOutputWindow();
+    if (relayToken) {
+      clearRelayToken(relayToken);
+    }
+    onRelayTokenChange(null);
+    await refreshStatus();
+    setActive(false);
+  };
+
+  const handleStop = async () => {
     setBusy(true);
     setError(null);
+
     try {
-      await window.morphixDesktop.obs.stopVirtualCam();
-      onRelayEnabledChange(false);
-      await window.morphixDesktop.closeOutputWindow();
-      await refreshStatus();
-      setActive(false);
+      if (desktopMode) {
+        await handleStopDesktop();
+      } else if (browserMode) {
+        await handleStopBrowser();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to stop OBS Virtual Camera");
     } finally {
@@ -78,7 +150,7 @@ export function ObsVirtualCamPanel({
     }
   };
 
-  if (!isDesktopApp()) {
+  if (!desktopMode && !browserMode) {
     return null;
   }
 
@@ -87,10 +159,19 @@ export function ObsVirtualCamPanel({
       <CardHeader>
         <h3 className="text-base font-semibold text-[var(--text-primary)]">OBS Virtual Camera</h3>
         <p className="text-xs text-[var(--text-muted)] mt-0.5">
-          Sends the swapped face to OBS, then exposes &quot;OBS Virtual Camera&quot; to Zoom and Discord.
+          {browserMode
+            ? "Localhost only — sends the swapped face to OBS via a browser source, then exposes OBS Virtual Camera to Zoom and Discord."
+            : "Sends the swapped face to OBS, then exposes OBS Virtual Camera to Zoom and Discord."}
         </p>
       </CardHeader>
       <CardBody className="space-y-3">
+        {browserMode && (
+          <Alert variant="info" title="Localhost mode">
+            OBS control works when Morphix runs at http://127.0.0.1:5173 with OBS Studio on the same PC. Allow popups
+            for this site when starting.
+          </Alert>
+        )}
+
         <Input
           label="OBS WebSocket password (if enabled in OBS)"
           type="password"

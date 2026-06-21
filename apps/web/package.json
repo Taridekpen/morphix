@@ -13,6 +13,7 @@
     "@morphix/media": "workspace:*",
     "@morphix/shared": "workspace:*",
     "@tanstack/react-query": "^5.69.0",
+    "obs-websocket-js": "^5.0.6",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.4.0"

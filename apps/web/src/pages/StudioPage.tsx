@@ -13,7 +13,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Alert } from "@/components/ui/Alert";
 import { LiveIndicator } from "@/components/ui/Badge";
 import { api } from "@/lib/api";
-import { isDesktopApp } from "@/lib/streamRelay";
+import { clearRelayToken, closeBrowserOutputWindow } from "@/lib/browserRelay";
+import { browserObsClient } from "@/lib/obsClient";
+import { isBrowserObsSupported, isDesktopApp } from "@/lib/runtimeEnv";
 import type { FacePreset } from "@morphix/shared";
 import {
   type SelectedReferenceFace,
@@ -27,6 +29,7 @@ export function StudioPage() {
   const [selectedReference, setSelectedReference] = useState<SelectedReferenceFace | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
   const [relayEnabled, setRelayEnabled] = useState(false);
+  const [relayToken, setRelayToken] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
   const session = useLiveSession(videoRef, beforeVideoRef);
@@ -39,15 +42,31 @@ export function StudioPage() {
   const remoteStream = session.getRemoteStream();
   const hasReference = selectedReference !== null;
 
-  useStreamRelaySender(remoteStream, relayEnabled && session.isSwapActive);
+  useStreamRelaySender(remoteStream, relayEnabled && session.isSwapActive, relayToken);
+
+  const stopObsPipeline = async () => {
+    if (isDesktopApp()) {
+      await window.morphixDesktop?.obs.stopVirtualCam().catch(() => undefined);
+      await window.morphixDesktop?.closeOutputWindow().catch(() => undefined);
+      return;
+    }
+
+    if (isBrowserObsSupported()) {
+      await browserObsClient.stopVirtualCam().catch(() => undefined);
+      closeBrowserOutputWindow();
+      if (relayToken) {
+        clearRelayToken(relayToken);
+      }
+      setRelayToken(null);
+    }
+  };
 
   useEffect(() => {
-    if (!session.isSwapActive && relayEnabled && isDesktopApp()) {
+    if (!session.isSwapActive && relayEnabled) {
       setRelayEnabled(false);
-      void window.morphixDesktop?.obs.stopVirtualCam().catch(() => undefined);
-      void window.morphixDesktop?.closeOutputWindow().catch(() => undefined);
+      void stopObsPipeline();
     }
-  }, [session.isSwapActive, relayEnabled]);
+  }, [session.isSwapActive, relayEnabled, relayToken]);
 
   const createFacePreset = useMutation({
     mutationFn: ({ file, name }: { file: File; name: string }) => {
@@ -104,10 +123,9 @@ export function StudioPage() {
       if (recording.isRecording) {
         await recording.stopRecording();
       }
-      if (relayEnabled && isDesktopApp()) {
+      if (relayEnabled) {
         setRelayEnabled(false);
-        await window.morphixDesktop?.obs.stopVirtualCam().catch(() => undefined);
-        await window.morphixDesktop?.closeOutputWindow().catch(() => undefined);
+        await stopObsPipeline();
       }
       await session.stopCamera();
     } else {
@@ -204,7 +222,9 @@ export function StudioPage() {
             swapLive={session.isSwapActive && session.faceStatus === "live"}
             remoteStream={remoteStream}
             relayEnabled={relayEnabled}
+            relayToken={relayToken}
             onRelayEnabledChange={setRelayEnabled}
+            onRelayTokenChange={setRelayToken}
           />
         </div>
 

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { isDesktopApp } from "@/lib/streamRelay";
+import { isBrowserObsSupported, isDesktopApp } from "@/lib/runtimeEnv";
 
 const steps = [
   {
@@ -17,8 +17,8 @@ const steps = [
   },
   {
     step: 3,
-    title: "OBS Virtual Camera (desktop app)",
-    body: "Install OBS Studio 28+ and enable WebSocket (Tools → WebSocket Server Settings). Run pnpm dev:desktop, start swap, then click Start OBS Virtual Camera in the studio.",
+    title: "OBS Virtual Camera",
+    body: "Install OBS Studio 28+ and enable WebSocket (Tools → WebSocket Server Settings). Start swap, then click Start OBS Virtual Camera in Studio. Use the desktop app (pnpm dev:desktop) or open Morphix at http://127.0.0.1:5173 in your browser on the same PC as OBS.",
   },
   {
     step: 4,
@@ -40,12 +40,14 @@ export function HelpPage() {
         }
       />
 
-      {!isDesktopApp() && (
+      {!isDesktopApp() && !isBrowserObsSupported() && (
         <Card className="mb-4">
           <CardBody>
             <p className="text-sm text-[var(--text-secondary)]">
-              For OBS Virtual Camera integration, use the Morphix Desktop app:{" "}
-              <code className="text-xs bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">pnpm dev:desktop</code>
+              OBS Virtual Camera works on the same PC as OBS Studio. Use the desktop app{" "}
+              <code className="text-xs bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">pnpm dev:desktop</code> or run{" "}
+              <code className="text-xs bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">pnpm dev</code> and open{" "}
+              <code className="text-xs bg-[var(--bg-muted)] px-1.5 py-0.5 rounded">http://127.0.0.1:5173</code>.
             </p>
           </CardBody>
         </Card>
