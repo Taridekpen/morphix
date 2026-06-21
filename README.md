@@ -87,6 +87,42 @@ pnpm dev
 
 Do **not** use `npm install` — this is a pnpm monorepo. If `packages/` is missing, re-clone the repository.
 
+If `packages/media/dist/index.js` is missing but `packages/media/src` exists, build it manually:
+
+```bash
+pnpm --filter @morphix/media build
+```
+
+### `ERR_PNPM_EPERM` on Electron during install
+
+Windows often blocks Electron's postinstall (antivirus, file lock, or permissions). The install aborts before workspace packages finish building.
+
+**Option A — Web only (skip Electron/desktop):**
+
+```powershell
+pnpm run install:web
+pnpm run build:packages
+pnpm dev
+```
+
+**Option B — Fix Electron install:**
+
+1. Close Morphix, Electron, and terminals using the project folder.
+2. Delete the partial Electron folder:
+
+```powershell
+Remove-Item -Recurse -Force "node_modules\.pnpm\electron@35.7.5" -ErrorAction SilentlyContinue
+```
+
+3. Add a Windows Defender exclusion for `C:\Users\Hp\Documents\morphix` (or your clone path).
+4. Run PowerShell **as Administrator**, then:
+
+```powershell
+pnpm install
+```
+
+5. If Electron still fails but you only need the browser app, use Option A.
+
 ### `EADDRINUSE` on port 3001
 
 Another API process is already running. Stop other `pnpm dev` terminals, or on Windows:

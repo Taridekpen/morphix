@@ -6,6 +6,7 @@
   "scripts": {
     "build:packages": "pnpm --filter @morphix/shared --filter @morphix/media build",
     "postinstall": "pnpm run build:packages",
+    "install:web": "pnpm install --filter \"!@morphix/desktop\"",
     "dev": "pnpm run build:packages && pnpm --parallel --filter @morphix/web --filter @morphix/api dev",
     "dev:web": "pnpm run build:packages && pnpm --filter @morphix/web dev",
     "dev:api": "pnpm --filter @morphix/api dev",
