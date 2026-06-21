@@ -23,7 +23,10 @@ packages/media  — MediaManager + LiveSessionController
 
 ```bash
 pnpm install
+pnpm run build:packages
 ```
+
+`build:packages` compiles `@morphix/shared` and `@morphix/media`. The `pnpm dev` and `pnpm dev:desktop` scripts run this automatically.
 
 ### 2. Configure API environment
 
@@ -52,8 +55,42 @@ Creates admin user: `admin@morphix.local` / `admin123456` (with active Pro subsc
 pnpm dev
 ```
 
-- Web: http://localhost:5173
+- Web: http://127.0.0.1:5173
 - API: http://localhost:3001
+
+## Troubleshooting
+
+### `Failed to resolve import "@morphix/media"`
+
+Workspace packages must be compiled before the web app starts:
+
+```bash
+pnpm run build:packages
+```
+
+### `EADDRINUSE` on port 3001
+
+Another API process is already running. Stop other `pnpm dev` terminals, or on Windows:
+
+```powershell
+netstat -ano | findstr :3001
+taskkill /PID <pid> /F
+```
+
+### Electron failed to install correctly
+
+From the repo root, allow Electron's postinstall script and reinstall:
+
+```bash
+pnpm install
+pnpm --filter @morphix/desktop rebuild electron
+```
+
+On pnpm 9+, ensure `electron: true` is set under `allowBuilds` in `pnpm-workspace.yaml`, then reinstall. Verify the binary exists:
+
+```powershell
+Test-Path apps\desktop\node_modules\electron\dist\electron.exe
+```
 
 ## Features
 

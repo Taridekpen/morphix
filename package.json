@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --parallel --filter @morphix/web --filter @morphix/api dev",
-    "dev:web": "pnpm --filter @morphix/web dev",
+    "build:packages": "pnpm --filter @morphix/shared --filter @morphix/media build",
+    "dev": "pnpm run build:packages && pnpm --parallel --filter @morphix/web --filter @morphix/api dev",
+    "dev:web": "pnpm run build:packages && pnpm --filter @morphix/web dev",
     "dev:api": "pnpm --filter @morphix/api dev",
-    "dev:desktop": "pnpm --parallel --filter @morphix/web --filter @morphix/api --filter @morphix/desktop dev",
+    "dev:desktop": "pnpm run build:packages && pnpm --parallel --filter @morphix/web --filter @morphix/api --filter @morphix/desktop dev",
     "build": "pnpm run --filter @morphix/shared build && pnpm run --filter @morphix/media build && pnpm run --filter @morphix/api build && pnpm run --filter @morphix/web build",
     "db:seed": "pnpm --filter @morphix/api db:seed"
   },
