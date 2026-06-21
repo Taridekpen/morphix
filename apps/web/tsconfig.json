@@ -16,7 +16,9 @@
     "noUnusedParameters": false,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@morphix/media": ["../../packages/media/src/index.ts"],
+      "@morphix/shared": ["../../packages/shared/src/index.ts"]
     }
   },
   "include": ["src"]

@@ -62,11 +62,30 @@ pnpm dev
 
 ### `Failed to resolve import "@morphix/media"`
 
-Workspace packages must be compiled before the web app starts:
+This usually means workspace packages were not built or the repo is incomplete.
+
+1. Pull the latest code and reinstall from the **repo root** (not `apps/web`):
 
 ```bash
+git pull
+pnpm install
+```
+
+2. Confirm the packages exist and were compiled:
+
+```powershell
+Test-Path packages\media\src\index.ts
+Test-Path packages\media\dist\index.js
 pnpm run build:packages
 ```
+
+3. Start dev from the repo root:
+
+```bash
+pnpm dev
+```
+
+Do **not** use `npm install` — this is a pnpm monorepo. If `packages/` is missing, re-clone the repository.
 
 ### `EADDRINUSE` on port 3001
 
