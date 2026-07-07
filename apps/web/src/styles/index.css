@@ -61,6 +61,123 @@
   --error-bg: #450a0a;
 }
 
+/* Desktop Electron shell — hacker / terminal theme */
+html.desktop {
+  --font-display: "JetBrains Mono", ui-monospace, monospace;
+
+  --bg: #020403;
+  --bg-elevated: #050a07;
+  --bg-muted: #0a120d;
+  --bg-subtle: #0f1a12;
+
+  --border: #14532d;
+  --border-strong: #166534;
+
+  --text-primary: #d1fae5;
+  --text-secondary: #86efac;
+  --text-muted: rgba(74, 222, 128, 0.55);
+
+  --primary: #00ff41;
+  --primary-hover: #39ff14;
+  --primary-muted: rgba(0, 255, 65, 0.12);
+
+  --accent-face: #00ff41;
+  --accent-success: #00ff41;
+  --accent-warning: #facc15;
+  --accent-danger: #f87171;
+
+  --shadow-sm: 0 0 8px rgba(0, 255, 65, 0.08);
+  --shadow-md: 0 0 16px rgba(0, 255, 65, 0.12);
+  --shadow-lg: 0 0 24px rgba(0, 255, 65, 0.18);
+
+  --radius: 0.375rem;
+  --radius-lg: 0.5rem;
+
+  --error-bg: #1a0a0a;
+}
+
+html.desktop body.desktop {
+  position: relative;
+  background-color: var(--bg);
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 255, 65, 0.03) 2px,
+      rgba(0, 255, 65, 0.03) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 24px,
+      rgba(0, 255, 65, 0.04) 24px,
+      rgba(0, 255, 65, 0.04) 25px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 24px,
+      rgba(0, 255, 65, 0.04) 24px,
+      rgba(0, 255, 65, 0.04) 25px
+    );
+}
+
+html.desktop body.desktop::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.12) 0px,
+    rgba(0, 0, 0, 0.12) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.35;
+}
+
+html.desktop ::selection {
+  background: rgba(0, 255, 65, 0.35);
+  color: #ecfdf5;
+}
+
+html.desktop ::-webkit-scrollbar-thumb {
+  background: #166534;
+}
+
+html.desktop h1,
+html.desktop h2,
+html.desktop h3,
+html.desktop .font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+
+html.desktop .desktop-glow {
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.15);
+}
+
+html.desktop .desktop-panel {
+  border-color: var(--border);
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.1);
+}
+
+html.desktop .desktop-label {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+html.desktop .font-display {
+  font-family: var(--font-display);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;

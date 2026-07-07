@@ -97,10 +97,17 @@ export function ObsOutputPage() {
 }
 
 function OutputShell({ message }: { message: string }) {
+  const desktopMode = isDesktopApp();
   return (
-    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center text-white px-6 text-center">
-      <p className="text-lg font-medium">{message}</p>
-      <p className="mt-2 text-sm text-white/60">Morphix Output — used by OBS Virtual Camera</p>
+    <div className="fixed inset-0 bg-black flex flex-col items-center justify-center px-6 text-center">
+      <p
+        className={`font-medium ${desktopMode ? "text-base text-[var(--primary)] font-display tracking-wide" : "text-lg text-white"}`}
+      >
+        {desktopMode ? `> ${message.toUpperCase()}` : message}
+      </p>
+      <p className={`mt-2 ${desktopMode ? "text-xs text-[var(--text-muted)] font-display" : "text-sm text-white/60"}`}>
+        {desktopMode ? "MORPHIX OUTPUT // OBS FEED" : "Morphix Output — used by OBS Virtual Camera"}
+      </p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { isDesktopApp } from "@/lib/runtimeEnv";
 import { Button } from "./ui/Button";
 
 const nav = [
@@ -13,43 +14,56 @@ export function AppLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const desktopMode = isDesktopApp();
 
   const linkClass = (path: string) =>
-    `block sm:inline-block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+    `block sm:inline-block px-3 py-2 rounded-lg text-sm font-medium transition-colors font-display tracking-wide ${
       location.pathname === path
-        ? "bg-[var(--primary-muted)] text-[var(--primary)]"
-        : "text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] hover:text-[var(--text-primary)]"
+        ? "bg-[var(--primary-muted)] text-[var(--primary)] border border-[var(--border)]"
+        : "text-[var(--text-secondary)] hover:bg-[var(--bg-muted)] hover:text-[var(--primary)]"
     }`;
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg)]">
-      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-elevated)]/90 backdrop-blur-md shadow-[var(--shadow-sm)]">
+      <header
+        className={`sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-elevated)]/90 backdrop-blur-md shadow-[var(--shadow-sm)] ${
+          desktopMode ? "desktop-panel" : ""
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-16 flex items-center justify-between gap-4">
+          <div className={`flex items-center justify-between gap-4 ${desktopMode ? "h-12" : "h-16"}`}>
             <Link to="/studio" className="flex items-center gap-2.5 shrink-0">
-              <div className="w-9 h-9 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm">
-                M
+              <div
+                className={`rounded-lg bg-[var(--primary)] flex items-center justify-center text-black font-bold font-display ${
+                  desktopMode ? "w-8 h-8 text-xs" : "w-9 h-9 text-sm"
+                }`}
+              >
+                {desktopMode ? "MX" : "M"}
               </div>
-              <span className="font-semibold text-[var(--text-primary)] hidden xs:inline">Morphix</span>
+              <span className="font-semibold text-[var(--primary)] hidden xs:inline font-display tracking-wider">
+                {desktopMode ? "MORPHIX" : "Morphix"}
+              </span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-1">
               {nav.map((item) => (
                 <Link key={item.to} to={item.to} className={linkClass(item.to)}>
-                  {item.label}
+                  {desktopMode ? item.label.toUpperCase() : item.label}
                 </Link>
               ))}
               {user?.role === "admin" && (
-                <Link to="/admin" className={linkClass("/admin")}>Admin</Link>
+                <Link to="/admin" className={linkClass("/admin")}>
+                  {desktopMode ? "ADMIN" : "Admin"}
+                </Link>
               )}
             </nav>
 
             <div className="flex items-center gap-2 sm:gap-3">
-              <span className="text-xs text-[var(--text-muted)] hidden lg:block max-w-[180px] truncate">
-                {user?.email}
+              <span className="text-xs text-[var(--text-muted)] hidden lg:block max-w-[180px] truncate font-display">
+                {desktopMode && user?.email ? `root@${user.email.split("@")[1] ?? "local"}` : user?.email}
               </span>
-              <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => logout()}>
-                Sign out
+              <Button variant="ghost" size="sm" className="hidden sm:inline-flex font-display" onClick={() => logout()}>
+                {desktopMode ? "EXIT" : "Sign out"}
               </Button>
               <button
                 type="button"
@@ -86,7 +100,7 @@ export function AppLayout() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 ${desktopMode ? "py-4" : "py-6 sm:py-8"}`}>
         <Outlet />
       </main>
     </div>

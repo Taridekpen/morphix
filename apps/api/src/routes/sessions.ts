@@ -1,11 +1,40 @@
 import type { FastifyInstance } from "fastify";
-import { createDecartClient } from "@decartai/sdk";
 import { decartTokenSchema, DECART_TOKEN_EXPIRES_IN } from "@morphix/shared";
 import { getUserId } from "../lib/auth.js";
 import { checkUsageAllowed } from "../lib/usage.js";
-import { requireDecartApiKey } from "../lib/decart.js";
+import {
+  createDecartClientToken,
+  fetchDecartCredits,
+  invalidateDecartCreditsCache,
+  requireDecartApiKey,
+} from "../lib/decart.js";
 
 export async function sessionRoutes(app: FastifyInstance) {
+  app.get(
+    "/sessions/decart-credits",
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      let apiKey: string;
+      try {
+        apiKey = requireDecartApiKey();
+      } catch (err) {
+        return reply.status(503).send({
+          error: err instanceof Error ? err.message : "Decart API key is not configured",
+        });
+      }
+
+      try {
+        const credits = await fetchDecartCredits(apiKey);
+        return credits;
+      } catch (err) {
+        request.log.error({ err }, "Failed to fetch Decart credits");
+        return reply.status(502).send({
+          error: "Failed to fetch Decart credit balance",
+        });
+      }
+    }
+  );
+
   app.post(
     "/sessions/decart-token",
     { preHandler: [app.authenticate] },
@@ -28,15 +57,16 @@ export async function sessionRoutes(app: FastifyInstance) {
       const body = decartTokenSchema.parse(request.body ?? {});
 
       try {
-        const decartClient = createDecartClient({ apiKey });
-        const tokenResult = await decartClient.tokens.create({
+        invalidateDecartCreditsCache();
+        const tokenResult = await createDecartClientToken(apiKey, {
           expiresIn: DECART_TOKEN_EXPIRES_IN,
           allowedModels: [body.model],
         });
 
         return {
-          token: tokenResult.apiKey,
+          token: tokenResult.token,
           expiresAt: tokenResult.expiresAt,
+          creditBalance: tokenResult.creditBalance,
         };
       } catch (err) {
         request.log.error({ err }, "Failed to create Decart token");

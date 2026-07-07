@@ -1,4 +1,4 @@
-import type { User, Plan, Subscription, PaymentConfig, FacePreset, UserSettings, UsageSummary } from "@morphix/shared";
+import type { User, Plan, Subscription, PaymentConfig, FacePreset, UserSettings, UsageSummary, DecartCreditsResponse, DecartTokenResponse } from "@morphix/shared";
 
 const API_BASE = "/api";
 
@@ -88,8 +88,10 @@ export const api = {
 
   me: () => request<User>("/auth/me"),
 
+  getDecartCredits: () => request<DecartCreditsResponse>("/sessions/decart-credits"),
+
   getDecartToken: (model: string) =>
-    request<{ token: string; expiresAt: string }>("/sessions/decart-token", {
+    request<DecartTokenResponse>("/sessions/decart-token", {
       method: "POST",
       body: JSON.stringify({ model }),
     }),

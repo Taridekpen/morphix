@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { isDesktopApp } from "@/lib/runtimeEnv";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -14,6 +15,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { user, loading: authLoading, login, register } = useAuth();
   const navigate = useNavigate();
+  const desktopMode = isDesktopApp();
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -47,18 +49,30 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md animate-fade-up">
+      <div className={`w-full animate-fade-up ${desktopMode ? "max-w-sm" : "max-w-md"}`}>
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-[var(--primary)] text-white font-bold text-lg flex items-center justify-center mx-auto mb-4">
-            M
+          <div
+            className={`rounded-xl bg-[var(--primary)] text-black font-bold flex items-center justify-center mx-auto mb-4 font-display ${
+              desktopMode ? "w-10 h-10 text-sm tracking-widest" : "w-12 h-12 text-lg"
+            }`}
+          >
+            {desktopMode ? "MX" : "M"}
           </div>
-          <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Morphix</h1>
-          <p className="mt-2 text-sm text-[var(--text-secondary)]">
-            {isRegister ? "Create your account to open the studio" : "Sign in to your studio"}
+          <h1 className={`font-semibold text-[var(--primary)] font-display tracking-wider ${desktopMode ? "text-xl" : "text-2xl"}`}>
+            {desktopMode ? "MORPHIX // ACCESS" : "Morphix"}
+          </h1>
+          <p className={`mt-2 text-[var(--text-muted)] font-display ${desktopMode ? "text-xs tracking-wide" : "text-sm text-[var(--text-secondary)]"}`}>
+            {isRegister
+              ? desktopMode
+                ? "REGISTER NEW OPERATOR"
+                : "Create your account to open the studio"
+              : desktopMode
+                ? "AUTHENTICATE TO CONTINUE"
+                : "Sign in to your studio"}
           </p>
         </div>
 
-        <Card>
+        <Card className={desktopMode ? "desktop-panel desktop-glow" : ""}>
           <CardBody>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <Input

@@ -155,14 +155,18 @@ export function ObsVirtualCamPanel({
   }
 
   return (
-    <Card className="mt-4">
+    <Card className={`${desktopMode ? "desktop-panel desktop-glow mt-0" : "mt-4"}`}>
       <CardHeader>
-        <h3 className="text-base font-semibold text-[var(--text-primary)]">OBS Virtual Camera</h3>
+        <h3 className={`font-semibold font-display ${desktopMode ? "text-sm text-[var(--primary)] tracking-wider" : "text-base text-[var(--text-primary)]"}`}>
+          {desktopMode ? "OBS_VIRTUAL_CAM" : "OBS Virtual Camera"}
+        </h3>
+        {!desktopMode && (
         <p className="text-xs text-[var(--text-muted)] mt-0.5">
           {browserMode
             ? "Localhost only — sends the swapped face to OBS via a browser source, then exposes OBS Virtual Camera to Zoom and Discord."
             : "Sends the swapped face to OBS, then exposes OBS Virtual Camera to Zoom and Discord."}
         </p>
+        )}
       </CardHeader>
       <CardBody className="space-y-3">
         {browserMode && (
@@ -221,16 +225,17 @@ export function ObsVirtualCamPanel({
 }
 
 function StatusPill({ label, ok }: { label: string; ok?: boolean }) {
+  const desktopMode = isDesktopApp();
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full border ${
+      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded border font-display uppercase tracking-wider ${
         ok
-          ? "border-[var(--accent-success)]/30 bg-[var(--accent-success)]/10 text-[var(--accent-success)]"
+          ? "border-[var(--accent-success)]/40 bg-[var(--accent-success)]/10 text-[var(--accent-success)]"
           : "border-[var(--border)] bg-[var(--bg-muted)] text-[var(--text-muted)]"
-      }`}
+      } ${desktopMode ? "text-[10px]" : "text-xs rounded-full"}`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${ok ? "bg-[var(--accent-success)]" : "bg-[var(--text-muted)]"}`} />
-      {label}
+      <span className={`w-1.5 h-1.5 rounded-full ${ok ? "bg-[var(--accent-success)] animate-[pulse-dot_1s_ease-in-out_infinite]" : "bg-[var(--text-muted)]"}`} />
+      {desktopMode ? label.toUpperCase() : label}
     </span>
   );
 }

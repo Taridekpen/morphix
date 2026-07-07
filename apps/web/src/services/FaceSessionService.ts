@@ -51,6 +51,14 @@ export class FaceSessionService {
     const tokenRes = await api.getDecartToken(modelId);
     this.decartApiKey = tokenRes.token;
 
+    if (tokenRes.creditBalance !== null && tokenRes.creditBalance !== undefined) {
+      window.dispatchEvent(
+        new CustomEvent("morphix:decart-credits", {
+          detail: { balance: tokenRes.creditBalance, available: true },
+        })
+      );
+    }
+
     const decartClient = createDecartClient({ apiKey: this.decartApiKey });
     const model = models.realtime(modelId);
 

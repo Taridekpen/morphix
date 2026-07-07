@@ -71,9 +71,15 @@ export interface UserSettings {
   defaultFacePresetId: string | null;
 }
 
+export interface DecartCreditsResponse {
+  balance: number | null;
+  available: boolean;
+}
+
 export interface DecartTokenResponse {
   token: string;
   expiresAt: string;
+  creditBalance?: number | null;
 }
 
 export interface UsageSummary {

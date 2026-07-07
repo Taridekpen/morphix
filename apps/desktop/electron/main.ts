@@ -26,8 +26,8 @@ function getPreloadPath(): string {
 
 function createControlWindow(): void {
   controlWindow = new BrowserWindow({
-    width: 1280,
-    height: 860,
+    width: 1024,
+    height: 720,
     minWidth: 960,
     minHeight: 640,
     title: "Morphix Studio",

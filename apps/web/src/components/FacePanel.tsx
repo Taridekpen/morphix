@@ -7,6 +7,7 @@ import { Button } from "./ui/Button";
 import { Select } from "./ui/Input";
 import { StatusBadge } from "./ui/Badge";
 import { FaceGallery } from "./FaceGallery";
+import { isDesktopApp } from "@/lib/runtimeEnv";
 
 interface FacePanelProps {
   status: SessionStatus;
@@ -46,6 +47,7 @@ export function FacePanel({
   const fileRef = useRef<HTMLInputElement>(null);
   const isDisabled = status === "applying" || status === "connecting";
   const uploadSelected = selectedReference?.source === "upload";
+  const desktopMode = isDesktopApp();
 
   const handleFile = (file: File) => {
     if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) return;
@@ -53,18 +55,22 @@ export function FacePanel({
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className={desktopMode ? "desktop-panel desktop-glow lg:rounded-none lg:border-y-0 lg:border-r-0" : ""}>
+      <CardHeader className={desktopMode ? "py-3" : undefined}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-base font-semibold text-[var(--text-primary)]">Face swap</h3>
-            <p className="text-xs text-[var(--text-muted)] mt-0.5">Select a reference face, then start swap</p>
+            <h3 className={`font-semibold text-[var(--primary)] font-display ${desktopMode ? "text-sm tracking-wider" : "text-base text-[var(--text-primary)]"}`}>
+              {desktopMode ? "CONFIG" : "Face swap"}
+            </h3>
+            {!desktopMode && (
+              <p className="text-xs text-[var(--text-muted)] mt-0.5">Select a reference face, then start swap</p>
+            )}
           </div>
           <StatusBadge status={status} />
         </div>
       </CardHeader>
 
-      <CardBody>
+      <CardBody className={desktopMode ? "space-y-3 py-3" : undefined}>
         {selectedReference ? (
           <div className="rounded-lg border-2 border-[var(--primary)] bg-[var(--primary-muted)]/40 p-3 shadow-[0_0_0_3px_var(--primary-muted)]">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--primary)] mb-2">
@@ -74,7 +80,9 @@ export function FacePanel({
               <img
                 src={referenceThumbnail(selectedReference)}
                 alt=""
-                className="w-16 h-16 rounded-full object-cover ring-4 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg-elevated)]"
+                className={`rounded-full object-cover ring-4 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--bg-elevated)] ${
+                  desktopMode ? "w-12 h-12" : "w-16 h-16"
+                }`}
               />
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
@@ -139,10 +147,15 @@ export function FacePanel({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Select label="Model" value={model} onChange={(e) => setModel(e.target.value as DecartModelId)} disabled={isDisabled}>
-            <option value="lucy-latest">Lucy Latest</option>
-            <option value="lucy-2.1">Lucy 2.1</option>
-            <option value="lucy-restyle-2">Lucy Restyle</option>
+          <Select
+            label={desktopMode ? "Profile" : "Model"}
+            value={model}
+            onChange={(e) => setModel(e.target.value as DecartModelId)}
+            disabled={isDisabled}
+          >
+            <option value="lucy-latest">Standard</option>
+            <option value="lucy-2.1">Balanced</option>
+            <option value="lucy-restyle-2">Restyle</option>
           </Select>
           <Select label="Quality" value={resolution} onChange={(e) => setResolution(e.target.value as DecartResolution)} disabled={isDisabled}>
             <option value="720p">720p</option>
@@ -150,14 +163,14 @@ export function FacePanel({
           </Select>
         </div>
 
-        <label className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)] cursor-pointer">
+        <label className={`flex items-center gap-2.5 text-sm text-[var(--text-secondary)] cursor-pointer ${desktopMode ? "font-display text-xs" : ""}`}>
           <input
             type="checkbox"
             checked={enhance}
             onChange={(e) => setEnhance(e.target.checked)}
             className="rounded border-[var(--border-strong)] text-[var(--primary)]"
           />
-          Enhance prompt automatically
+          {desktopMode ? "Auto-enhance" : "Enhance prompt automatically"}
         </label>
 
         {isSwapActive && (
